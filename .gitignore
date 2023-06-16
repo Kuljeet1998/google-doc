@@ -2,3 +2,7 @@ config/
 
 credentials.json
 token.json
+secrets.json
+
+__pycache__/
+*.py[cod]

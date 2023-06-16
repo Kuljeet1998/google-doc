@@ -7,6 +7,9 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import psycopg2
+from settings.base import get_secret
+from db_commands import *
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/documents.readonly']
@@ -43,6 +46,46 @@ def main():
         # Retrieve the documents contents from the Docs service.
         document = service.documents().get(documentId=DOCUMENT_ID).execute()
         print('The title of the document is: {}'.format(document.get('title')))
+
+        #Extract DB details from secrets
+        HOST = get_secret('host')
+        DATABASE = get_secret('database')
+        USER = get_secret('user')
+        PASSWORD = get_secret('password')
+        
+        #Establish db connection
+        conn = psycopg2.connect(
+            host=HOST,
+            database=DATABASE,
+            user=USER,
+            password=PASSWORD)
+
+        cur = conn.cursor()
+
+        #Create table 'information'
+        cur.execute(create_table_command)
+        # close communication with the PostgreSQL database server
+        cur.close()
+        # commit the changes
+        conn.commit()
+
+        #Extract body
+        body = document.get('body')
+        lines = len(body['content'])
+
+        for i in range(lines):
+            content = body['content'][i]
+
+            #Get body content
+            if 'paragraph' in content:
+                #Check if the line contains text
+                if 'textRun' in content['paragraph']['elements'][0]:
+                    #Skip the extra end line(s)
+                    if content['paragraph']['elements'][0]['textRun']['content'] =='\n':
+                        continue
+                    print(content['paragraph']['elements'][0]['textRun']['content'])
+
+
         
     except HttpError as err:
         print(err)
