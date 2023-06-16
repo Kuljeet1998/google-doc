@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import os.path
-
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -11,9 +9,20 @@ import psycopg2
 from settings.base import get_secret
 from db_commands import *
 from utils import *
+import requests
+from oauth2client import file as f, client, tools
+from httplib2 import Http
+
+import os
+
+os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/documents.readonly']
+SCOPES = ['https://www.googleapis.com/auth/documents.readonly',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/drive.metadata']
 
 # The ID of a sample document.
 DOCUMENT_ID = '13Ztp08sngMZ6ScMFu2YZNwXWOguEmVmVdbooLAVd-9k'
@@ -79,10 +88,21 @@ def main():
         #Extract body
         body = document.get('body')
         lines = len(body['content'])
+        
+        store = f.Storage('config/credentials.json')
+        # creds = Credentials.from_authorized_user_file('config/token.json', SCOPES)
+        creds = None
+        if not creds or creds.invalid:
+            flow = client.flow_from_clientsecrets('config/credentials.json', scope=SCOPES)
+            creds = tools.run_flow(flow, store)
+        DRIVE = build('drive','v3', http=creds.authorize(Http()))
 
-        # import pdb;
-        # pdb.set_trace()
+        files = DRIVE.files().get(fileId=DOCUMENT_ID, fields='*').execute()
 
+        LATEST_USER_EMAIL = files['lastModifyingUser']['emailAddress']
+        # START_TIME = files['createdTime']
+        # MODIFIED_TIME = files['modifiedTime']
+        
         ID = auto_fill_id(latest_row)
         CREATED = get_current_datetime()
 

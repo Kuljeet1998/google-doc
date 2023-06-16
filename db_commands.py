@@ -1,5 +1,6 @@
 create_table_command = '''CREATE TABLE IF NOT EXISTS information (
                             id INT,
+                            REVISION_ID INT,
                             URL VARCHAR(100),
                             CREATED TIMESTAMP,
                             START_TIME TIMESTAMP,
