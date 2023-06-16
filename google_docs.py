@@ -10,6 +10,7 @@ from googleapiclient.errors import HttpError
 import psycopg2
 from settings.base import get_secret
 from db_commands import *
+from utils import *
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/documents.readonly']
@@ -64,6 +65,12 @@ def main():
 
         #Create table 'information'
         cur.execute(create_table_command)
+
+        cur.execute(get_latest_row_command)
+        fetch_all = cur.fetchall()
+        latest_row = ''
+        if len(fetch_all)!=0:
+            latest_row = cur.fetchall()[0]
         # close communication with the PostgreSQL database server
         cur.close()
         # commit the changes
@@ -72,6 +79,12 @@ def main():
         #Extract body
         body = document.get('body')
         lines = len(body['content'])
+
+        # import pdb;
+        # pdb.set_trace()
+
+        ID = auto_fill_id(latest_row)
+        CREATED = get_current_datetime()
 
         for i in range(lines):
             content = body['content'][i]

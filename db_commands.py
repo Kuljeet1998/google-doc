@@ -14,3 +14,5 @@ create_table_command = '''CREATE TABLE IF NOT EXISTS information (
 insert_command = '''INSERT INTO information (url,created,start_time,end_time,author,duration,new_content,copy_pasted)
                     VALUES ({url},{created},{start_time},{end_time},{author},{duration},{new_content},{copy_pasted})
                     ;'''
+
+get_latest_row_command = 'SELECT * FROM information ORDER BY created desc limit 1;'
