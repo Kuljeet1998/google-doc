@@ -75,20 +75,22 @@ def main():
         #Create table 'information'
         cur.execute(create_table_command)
 
-        cur.execute(get_latest_row_command)
+        cur.execute(get_all_rows_command)
         fetch_all = cur.fetchall()
         latest_row_id = 0
+        referenceId_url_dict = {}
         if len(fetch_all)!=0:
-            latest_row_id = fetch_all[0][0]
+            for row in fetch_all:
+                reference_id = row[1]
+                url = row[2]
+                referenceId_url_dict[reference_id] = url
+            latest_row_id = fetch_all[len(fetch_all)-1][0]
+        
         # close communication with the PostgreSQL database server
         cur.close()
         # commit the changes
         conn.commit()
 
-        #Extract body
-        body = document.get('body')
-        lines = len(body['content'])
-        
         store = f.Storage('config/credentials.json')
         # creds = Credentials.from_authorized_user_file('config/token.json', SCOPES)
         creds = None
@@ -99,12 +101,20 @@ def main():
         
         #Using v2 since v3 doesn't give revision links
         DRIVE = build('drive','v2', http=creds.authorize(Http()))
-        DRIVE_V3 = build('drive','v3', http=creds.authorize(Http()))
         revision_list = DRIVE.revisions().list(fileId=DOCUMENT_ID).execute()
         TOKEN = get_token('token')
 
         for i in range(len(revision_list['items'])):
             revision = revision_list['items'][i]
+            
+            REVISION_ID = revision['id']
+            URL =  "https://docs.google.com/document/d/{}".format(document.get('documentId'))
+
+            #ignore document with same revision-id (i.e. previously edited document content)
+            if REVISION_ID in referenceId_url_dict:
+                if referenceId_url_dict[REVISION_ID]==URL:
+                    continue
+
             START_TIME = ''
             if i==0:
                 files = DRIVE.files().get(fileId=DOCUMENT_ID, fields='*').execute()
@@ -124,8 +134,6 @@ def main():
             header = {"Authorization":"Bearer {}".format(TOKEN)}
             r = requests.get(link, headers=header)
             ID = auto_fill_id(latest_row_id)
-            REVISION_ID = revision['id']
-            URL =  repr('https://docs.google.com/document/d/{}'.format(document.get('documentId')))
             CREATED = get_current_datetime()
 
             END_TIME = revision_list['items'][i]['modifiedDate']
@@ -134,37 +142,16 @@ def main():
             END_TIME = datetime.strptime(END_TIME, '%Y-%m-%d %H:%M:%S')
 
             AUTHOR = repr(revision['lastModifyingUser']['emailAddress'])
-            import pdb;
-            pdb.set_trace()
             duration_object = END_TIME - START_TIME
             DURATION = int(duration_object.total_seconds()) #storing in seconds
 
             CONTENT = repr(r.content.decode('utf-8'))
-            COPY_PASTED = 0 #To calculate
-            
-
-        #User details
-        files = DRIVE.files().get(fileId=DOCUMENT_ID, fields='*').execute()
-        LATEST_USER_EMAIL = files['lastModifyingUser']['emailAddress']
-        # START_TIME = files['createdTime']
-        # MODIFIED_TIME = files['modifiedTime']
-        
-        ID = auto_fill_id(latest_row)
-        CREATED = get_current_datetime()
-
-        # for i in range(lines):
-        #     content = body['content'][i]
-
-        #     #Get body content
-        #     if 'paragraph' in content:
-        #         #Check if the line contains text
-        #         if 'textRun' in content['paragraph']['elements'][0]:
-        #             #Skip the extra end line(s)
-        #             if content['paragraph']['elements'][0]['textRun']['content'] =='\n':
-        #                 continue
-        #             print(content['paragraph']['elements'][0]['textRun']['content'])
-
-
+            COPY_PASTED = is_copy_pasted(CONTENT,DURATION)
+            query = cur.mogrify(insert_command,(ID,int(REVISION_ID),URL,CREATED,START_TIME,END_TIME,AUTHOR,DURATION,CONTENT,COPY_PASTED))
+            cur.execute(query)
+            cur.close()
+            conn.commit()
+            latest_row_id = latest_row_id + 1
         
     except HttpError as err:
         print(err)
