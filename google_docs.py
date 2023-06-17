@@ -21,9 +21,6 @@ import os
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 
 
-# Running script name
-# running_script = sys.argv[0]
-
 def get_args():
     parser = argparse.ArgumentParser()
 
