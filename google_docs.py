@@ -111,8 +111,8 @@ def main():
             URL =  "https://docs.google.com/document/d/{}".format(document.get('documentId'))
 
             #ignore document with same revision-id (i.e. previously edited document content)
-            if REVISION_ID in referenceId_url_dict:
-                if referenceId_url_dict[REVISION_ID]==URL:
+            if int(REVISION_ID) in referenceId_url_dict:
+                if referenceId_url_dict[int(REVISION_ID)]==URL:
                     continue
 
             START_TIME = ''
@@ -146,7 +146,7 @@ def main():
             DURATION = int(duration_object.total_seconds()) #storing in seconds
 
             CONTENT = repr(r.content.decode('utf-8'))
-            COPY_PASTED = is_copy_pasted(CONTENT,DURATION)
+            COPY_PASTED = is_copy_pasted_wrt_wpm(CONTENT,DURATION)
             query = cur.mogrify(insert_command,(ID,int(REVISION_ID),URL,CREATED,START_TIME,END_TIME,AUTHOR,DURATION,CONTENT,COPY_PASTED))
             cur.execute(query)
             cur.close()
