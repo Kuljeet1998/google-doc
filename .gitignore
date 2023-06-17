@@ -3,6 +3,7 @@ config/
 credentials.json
 token.json
 secrets.json
+service_acccount_secrets.json
 
 __pycache__/
 *.py[cod]

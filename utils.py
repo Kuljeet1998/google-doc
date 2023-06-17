@@ -4,9 +4,13 @@ import string
 import requests
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import time
+from settings.base import get_service_account_secrets
+import jwt
 
 AVG_TYPING_SPEED = 45
 COPY_PASTE_THRESHOLD = 50
+THRESHOLD = 0.7
 
 def get_current_datetime():
     now = datetime.now()
@@ -64,10 +68,11 @@ def is_copy_pasted_external_source(new_content):
         if response.status_code == 200:
             source_content = preprocess_text(response.text)
             source_vectors = vectorizer.transform([source_content])
-            similarities = cosine_similarity(sentences, source_vectors)
+            similarities = cosine_similarity(sentence_vectors, source_vectors)
 
-            for i in enumerate(similarities):
-                copied_sentences.append(sentences[i])
+            for i, similarity in enumerate(similarities):
+                if similarity >= THRESHOLD:
+                    copied_sentences.append(sentences[i])
     
     if copied_sentences:
         percentage_copied = (len(copied_sentences) / len(sentences)) * 100
@@ -77,3 +82,18 @@ def is_copy_pasted_external_source(new_content):
             return 1
     
     return 0
+
+def create_token():
+    iat = time.time()
+    exp = iat + 3600
+    payload = {'iss': '123456-compute@developer.gserviceaccount.com',
+            'sub': '123456-compute@developer.gserviceaccount.com',
+            'aud': 'https://firestore.googleapis.com/',
+            'iat': iat,
+            'exp': exp}
+
+    PRIVATE_KEY_ID_FROM_JSON = get_service_account_secrets('private_key_id')
+    PRIVATE_KEY_FROM_JSON = get_service_account_secrets('private_key')
+    additional_headers = {'kid': PRIVATE_KEY_ID_FROM_JSON}
+    signed_jwt = jwt.encode(payload, PRIVATE_KEY_FROM_JSON, headers=additional_headers, algorithm='RS256')
+    return signed_jwt

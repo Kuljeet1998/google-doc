@@ -104,7 +104,9 @@ def main():
         revision_list = DRIVE.revisions().list(fileId=DOCUMENT_ID).execute()
         TOKEN = get_token('token')
 
+        print("This might take a while.")
         for i in range(len(revision_list['items'])):
+            print('Populating/Checking row {} in table'.format(i+1))
             revision = revision_list['items'][i]
             
             REVISION_ID = revision['id']
@@ -146,7 +148,13 @@ def main():
             DURATION = int(duration_object.total_seconds()) #storing in seconds
 
             CONTENT = repr(r.content.decode('utf-8'))
+
+            #Set copy-pasted value depending on typing speed
             COPY_PASTED = is_copy_pasted_wrt_wpm(CONTENT,DURATION)
+            COPY_PASTED_extenal = is_copy_pasted_external_source(CONTENT)
+            #check if text is taken from external source, set 1 if yes
+            if  COPY_PASTED_extenal == 1:
+                COPY_PASTED = 1
             query = cur.mogrify(insert_command,(ID,int(REVISION_ID),URL,CREATED,START_TIME,END_TIME,AUTHOR,DURATION,CONTENT,COPY_PASTED))
             cur.execute(query)
             cur.close()
