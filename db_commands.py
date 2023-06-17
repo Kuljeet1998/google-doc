@@ -12,8 +12,8 @@ create_table_command = '''CREATE TABLE IF NOT EXISTS information (
                             PRIMARY KEY (id)
                             );'''
 
-insert_command = '''INSERT INTO information (url,created,start_time,end_time,author,duration,new_content,copy_pasted)
-                    VALUES ({url},{created},{start_time},{end_time},{author},{duration},{new_content},{copy_pasted})
+insert_command = '''INSERT INTO information (id,revision_id,url,created,start_time,end_time,author,duration,new_content,copy_pasted)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     ;'''
 
 get_latest_row_command = 'SELECT * FROM information ORDER BY created desc limit 1;'
