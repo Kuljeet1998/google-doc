@@ -6,12 +6,13 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import psycopg2
-from settings.base import get_secret, get_token
+from settings.base import get_secret
 from db_commands import *
 from utils import *
 import requests
 from oauth2client import file as f, client, tools
 from httplib2 import Http
+from google.oauth2 import service_account
 
 import os
 
@@ -29,29 +30,14 @@ DOCUMENT_ID = '13Ztp08sngMZ6ScMFu2YZNwXWOguEmVmVdbooLAVd-9k'
 
 
 def main():
-    """Shows basic usage of the Docs API.
-    Prints the title of a sample document.
-    """
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('config/token.json'):
-        creds = Credentials.from_authorized_user_file('config/token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'config/credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('config/token.json', 'w') as token:
-            token.write(creds.to_json())
+    key_file_path = 'config/service_account_secrets.json'
+    credentials = service_account.Credentials.from_service_account_file(key_file_path,scopes=SCOPES)
+        
+    if credentials.expired and credentials.refresh_token:
+        credentials.refresh(Request())
 
     try:
-        service = build('docs', 'v1', credentials=creds)
+        service = build('docs', 'v1', credentials=credentials)
 
         # Retrieve the documents contents from the Docs service.
         document = service.documents().get(documentId=DOCUMENT_ID).execute()
@@ -91,18 +77,11 @@ def main():
         # commit the changes
         conn.commit()
 
-        store = f.Storage('config/credentials.json')
-        # creds = Credentials.from_authorized_user_file('config/token.json', SCOPES)
-        creds = None
-
-        if not creds or creds.invalid:
-            flow = client.flow_from_clientsecrets('config/credentials.json', scope=SCOPES)
-            creds = tools.run_flow(flow, store)
-        
         #Using v2 since v3 doesn't give revision links
-        DRIVE = build('drive','v2', http=creds.authorize(Http()))
+        if credentials.expired and credentials.refresh_token:
+            credentials.refresh(Request())
+        DRIVE = build('drive', 'v2', credentials=credentials)
         revision_list = DRIVE.revisions().list(fileId=DOCUMENT_ID).execute()
-        TOKEN = get_token('token')
 
         print("This might take a while.")
         for i in range(len(revision_list['items'])):
@@ -133,6 +112,11 @@ def main():
 
             cur = conn.cursor()
             link = revision['exportLinks']['text/plain']
+
+            if credentials.expired and credentials.refresh_token:
+                credentials.refresh(Request())
+            TOKEN = credentials.token
+
             header = {"Authorization":"Bearer {}".format(TOKEN)}
             r = requests.get(link, headers=header)
             ID = auto_fill_id(latest_row_id)

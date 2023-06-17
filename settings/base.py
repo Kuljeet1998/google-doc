@@ -17,35 +17,3 @@ def get_secret(setting, secrets=secrets):
     except KeyError:
         error_message = 'Set the {0} environment variable'.format(setting)
         sys.exit(error_message)
-
-TOKEN_FILE = str('config/token.json')
-if os.path.exists(TOKEN_FILE) is False:
-    sys.exit(" Please add 'token.json' file in config/ folder.")
-
-with open(TOKEN_FILE) as f:
-    tokens = json.loads(f.read())
-
-
-def get_token(setting, tokens=tokens):
-    '''get the token variable value of return exception'''
-    try:
-        return tokens[setting]
-    except KeyError:
-        error_message = 'Set the {0} environment variable'.format(setting)
-        sys.exit(error_message)
-
-SERVICE_ACCOUNT_FILE = str('config/service_account_secrets.json')
-if os.path.exists(SERVICE_ACCOUNT_FILE) is False:
-    sys.exit(" Please add 'service_account_secrets.json' file in config/ folder.")
-
-with open(SERVICE_ACCOUNT_FILE) as f:
-    services = json.loads(f.read())
-
-
-def get_service_account_secrets(setting, services=services):
-    '''get the service_account_secrets variable value of return exception'''
-    try:
-        return services[setting]
-    except KeyError:
-        error_message = 'Set the {0} environment variable'.format(setting)
-        sys.exit(error_message)
