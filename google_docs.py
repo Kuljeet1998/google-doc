@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import sys
+import argparse
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -18,6 +20,20 @@ import os
 
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 
+
+# Running script name
+# running_script = sys.argv[0]
+
+def get_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-d", help="ID of the document",
+                        default='13Ztp08sngMZ6ScMFu2YZNwXWOguEmVmVdbooLAVd-9k')
+
+    args = parser.parse_args()
+    return args
+
+
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/documents.readonly',
             'https://www.googleapis.com/auth/userinfo.email',
@@ -25,11 +41,12 @@ SCOPES = ['https://www.googleapis.com/auth/documents.readonly',
             'https://www.googleapis.com/auth/drive',
             'https://www.googleapis.com/auth/drive.metadata']
 
-# The ID of a sample document.
-DOCUMENT_ID = '13Ztp08sngMZ6ScMFu2YZNwXWOguEmVmVdbooLAVd-9k'
-
 
 def main():
+    args = get_args()
+    if args.d is not None:
+        DOCUMENT_ID = args.d
+    print("Checking if text is copy-pasted for Document with ID: {}".format(DOCUMENT_ID))
     key_file_path = 'config/service_account_secrets.json'
     credentials = service_account.Credentials.from_service_account_file(key_file_path,scopes=SCOPES)
         
